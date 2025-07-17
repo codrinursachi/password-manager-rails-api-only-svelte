@@ -1,4 +1,4 @@
 "use client";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient } from "@sveltestack/svelte-query";
 
 export const queryClient = new QueryClient();

@@ -8,11 +8,32 @@
     import AlertCircleIcon from "@lucide/svelte/icons/alert-circle";
     import { mutateUserLogin } from "../../util/mutate-utils/mutate-user-login";
     import startAuthentication from "../../util/passkey-util/passkey-authentication";
+    import { createMutation } from "@tanstack/svelte-query";
 
     let loginWithPassword = $state(false);
     let email = $state("");
     let loginError = $state<string | null>(null);
 
+    // const initiateLogin = createMutation({
+    //     mutationFn: async (event: Event | null) => {
+    //         if (!event) {
+    //             await startAuthentication(email);
+    //             navigate("/");
+    //             return;
+    //         }
+
+    //         event.preventDefault();
+    //         await mutateUserLogin(
+    //             new FormData(event.target as HTMLFormElement)
+    //         );
+    //         navigate("/");
+    //     },
+    // });
+
+    // const handleLogin = (event: Event|null) => {
+    //     event.preventDefault();
+    //     initiateLogin.mutate({event});
+    // };
     const initiateLogin = async (event: Event | null) => {
         loginError = null;
         if (!event) {
@@ -77,14 +98,14 @@
                     class={"grid gap-3" + (!loginWithPassword ? " hidden" : "")}
                 >
                     <div class="flex items-center">
-                        <Label html="password">Password</Label>
+                        <Label for="password">Password</Label>
                     </div>
                     <Input
                         id="password"
                         type="password"
                         name="password"
                         required
-                        minLength={6}
+                        minlength={6}
                     />
                 </div>
                 <Button

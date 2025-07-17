@@ -4,15 +4,19 @@
     import UserLoginPage from "./lib/pages/UserLoginPage.svelte";
     import UserRegisterPage from "./lib/pages/UserRegisterPage.svelte";
     import RouteGuard from "./lib/route-guard.svelte";
+    import MainApp from "./lib/pages/MainApp.svelte";
+    import { QueryClientProvider } from "@sveltestack/svelte-query";
+    import { queryClient } from "./lib/util/query-utils/query-client.js";
 </script>
 
-<main>
+<QueryClientProvider client={queryClient}>
     {#if $route === "/login"}
-    <UserLoginPage />
+        <UserLoginPage />
     {:else if $route === "/register"}
-    <UserRegisterPage />
+        <UserRegisterPage />
     {:else}
-    <RouteGuard>
-    </RouteGuard>
+        <RouteGuard>
+            <MainApp />
+        </RouteGuard>
     {/if}
-</main>
+</QueryClientProvider>

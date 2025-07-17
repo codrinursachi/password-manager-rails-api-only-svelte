@@ -1,4 +1,4 @@
-import { networkFetch } from "@/util/network-utils/network-fetch";
+import { networkFetch } from "../network-utils/network-fetch";
 
 export async function mutateFolder(
     formData: FormData | null,
