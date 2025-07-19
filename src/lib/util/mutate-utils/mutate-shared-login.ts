@@ -1,10 +1,10 @@
 import {
     decryptAES,
-    encryptRSAPassword as encryptRSAPassword,
-} from "@/util/crypt-utils/cryptography";
-import { networkFetch } from "@/util/network-utils/network-fetch";
-import { queryClient } from "@/util/query-utils/query-client";
-import { queryLogin } from "@/util/query-utils/query-login";
+    encryptRSAPassword,
+} from "../crypt-utils/cryptography";
+import { networkFetch } from "../network-utils/network-fetch";
+import { queryClient } from "../query-utils/query-client";
+import { queryLogin } from "../query-utils/query-login";
 
 export async function mutateSharedLogin(
     formData: FormData | null,

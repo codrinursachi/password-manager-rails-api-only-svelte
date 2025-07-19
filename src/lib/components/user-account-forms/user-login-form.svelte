@@ -8,60 +8,32 @@
     import AlertCircleIcon from "@lucide/svelte/icons/alert-circle";
     import { mutateUserLogin } from "../../util/mutate-utils/mutate-user-login";
     import startAuthentication from "../../util/passkey-util/passkey-authentication";
-    import { createMutation } from "@tanstack/svelte-query";
+    import { useMutation } from "@sveltestack/svelte-query";
 
     let loginWithPassword = $state(false);
     let email = $state("");
-    let loginError = $state<string | null>(null);
 
-    // const initiateLogin = createMutation({
-    //     mutationFn: async (event: Event | null) => {
-    //         if (!event) {
-    //             await startAuthentication(email);
-    //             navigate("/");
-    //             return;
-    //         }
-
-    //         event.preventDefault();
-    //         await mutateUserLogin(
-    //             new FormData(event.target as HTMLFormElement)
-    //         );
-    //         navigate("/");
-    //     },
-    // });
-
-    // const handleLogin = (event: Event|null) => {
-    //     event.preventDefault();
-    //     initiateLogin.mutate({event});
-    // };
-    const initiateLogin = async (event: Event | null) => {
-        loginError = null;
-        if (!event) {
-            try {
+    const initiateLogin = useMutation(
+        async (event: Event | null) => {
+            if (!event) {
                 await startAuthentication(email);
-                navigate("/");
-            } catch (error) {
-                loginError =
-                    error instanceof Error
-                        ? error.message
-                        : "An unexpected error occurred.";
+                return;
             }
-            return;
-        }
-        event.preventDefault();
-        try {
+
+            event.preventDefault();
             await mutateUserLogin(
                 new FormData(event.target as HTMLFormElement)
             );
-            navigate("/");
-        } catch (error) {
-            loginWithPassword = false;
-            loginError =
-                error instanceof Error
-                    ? error.message
-                    : "An unexpected error occurred.";
+        },
+        {
+            onError: () => {
+                loginWithPassword = false;
+            },
+            onSuccess: () => {
+                navigate("/");
+            },
         }
-    };
+    );
 </script>
 
 <Card.Root class="mx-auto w-full max-w-sm">
@@ -73,7 +45,7 @@
         >
     </Card.Header>
     <Card.Content>
-        <form onsubmit={initiateLogin}>
+        <form onsubmit={$initiateLogin.mutate}>
             <div class="grid gap-4">
                 <div
                     class={"grid gap-2" + (loginWithPassword ? " hidden" : "")}
@@ -90,7 +62,7 @@
                 <Button
                     type="button"
                     class={"w-full" + (loginWithPassword ? " hidden" : "")}
-                    onclick={() => initiateLogin(null)}
+                    onclick={() => $initiateLogin.mutate(null)}
                 >
                     Login with passkey
                 </Button>
@@ -127,10 +99,10 @@
                 >
                     Login
                 </Button>
-                {#if loginError}
+                {#if $initiateLogin.error}
                     <Alert.Root variant="destructive">
                         <AlertCircleIcon />
-                        <Alert.Title>{loginError}</Alert.Title>
+                        <Alert.Title>{$initiateLogin.error}</Alert.Title>
                     </Alert.Root>
                 {/if}
             </div>

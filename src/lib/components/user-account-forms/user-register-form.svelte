@@ -8,41 +8,32 @@
     import AlertCircleIcon from "@lucide/svelte/icons/alert-circle";
     import startRegistration from "../../util/passkey-util/passkey-registration";
     import { mutateUserRegistration } from "../../util/mutate-utils/mutate-user-registration";
+    import { useMutation } from "@sveltestack/svelte-query";
 
     let registerWithPassword = $state(false);
     let email = $state("");
     let name = $state("");
-    let registrationError = $state<string | null>(null);
 
-    const initiateRegistration = async (event: Event | null) => {
-        console.log("Submitting registration form");
-        registrationError = null;
-        if (!event) {
-            try {
+    const initiateRegistration = useMutation(
+        async (event: Event | null) => {
+            if (!event) {
                 await startRegistration(email, name);
-                navigate("/");
-            } catch (error) {
-                registrationError =
-                    error instanceof Error
-                        ? error.message
-                        : "An unexpected error occurred.";
+                return;
             }
-            return;
-        }
-        event.preventDefault();
-        try {
+            event.preventDefault();
             await mutateUserRegistration(
                 new FormData(event.target as HTMLFormElement)
             );
-            navigate("/");
-        } catch (error) {
-            registrationError =
-                error instanceof Error
-                    ? error.message
-                    : "An unexpected error occurred.";
-            registerWithPassword = false;
+        },
+        {
+            onError: () => {
+                registerWithPassword = false;
+            },
+            onSuccess: () => {
+                navigate("/");
+            },
         }
-    };
+    );
 </script>
 
 <Card.Root>
@@ -54,7 +45,7 @@
         </Card.Description>
     </Card.Header>
     <Card.Content>
-        <form onsubmit={initiateRegistration}>
+        <form onsubmit={$initiateRegistration.mutate}>
             <div class="flex flex-col gap-6">
                 <div
                     class={"flex flex-col gap-6" +
@@ -85,7 +76,7 @@
                     </div>
                     <Button
                         type="button"
-                        onclick={() => initiateRegistration(null)}
+                        onclick={() => $initiateRegistration.mutate(null)}
                         class="w-full"
                     >
                         Register with passkey
@@ -104,7 +95,7 @@
                             type="password"
                             required
                             name="password"
-                            minLength={6}
+                            minlength={6}
                         />
                     </div>
                     <div class="grid gap-3">
@@ -118,7 +109,7 @@
                             type="password"
                             required
                             name="password-confirmation"
-                            minLength={6}
+                            minlength={6}
                         />
                     </div>
                     <Button type="submit" class="w-full">Register</Button>
@@ -143,10 +134,10 @@
                 >
                     Register with password
                 </Button>
-                {#if registrationError}
+                {#if $initiateRegistration.error}
                     <Alert.Root variant="destructive">
                         <AlertCircleIcon />
-                        <Alert.Title>{registrationError}</Alert.Title>
+                        <Alert.Title>{$initiateRegistration.error}</Alert.Title>
                     </Alert.Root>
                 {/if}
             </div>

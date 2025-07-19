@@ -2,23 +2,16 @@
     import * as Sidebar from "$lib/components/ui/sidebar/index.js";
     import { navigate, route } from "$lib/router";
     import { queryFolders } from "$lib/util/query-utils/query-folders";
+    import { useQuery } from "@sveltestack/svelte-query";
     import FoldersDropdown from "./folders-dropdown.svelte";
     import SidebarUserFoldersGroupLabel from "./sidebar-user-folders-group-label.svelte";
+    import UserFoldersSkeleton from "../skeletons/user-folders-skeleton.svelte";
 
     const params = new URLSearchParams(new URL(window.location.href).search);
     const currentFolder = params.get("folder_id");
-    let data = $state([]);
-    $effect(() => {
-        const fetchFolders = async () => {
-            try {
-                data = await queryFolders(null);
-            } catch (error) {
-                console.error("Error fetching folders:", error);
-                data = [];
-            }
-        };
-
-        fetchFolders();
+    const folders = useQuery("folders", async () => await queryFolders(null), {
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 </script>
 
@@ -26,10 +19,10 @@
     <SidebarUserFoldersGroupLabel />
     <Sidebar.GroupContent>
         <Sidebar.Menu>
-            {#if !data}
-                <!-- <UserFoldersSkeleton /> -->
+            {#if !$folders.data}
+                <UserFoldersSkeleton />
             {:else}
-                {#each data as folder (folder.id)}
+                {#each $folders.data as folder (folder.id)}
                     <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                             isActive={currentFolder === folder.id.toString()}

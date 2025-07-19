@@ -1,65 +1,65 @@
 <script lang="ts">
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-    import * as Sidebar from "../ui/sidebar/index.js";
     import * as Dialog from "$lib/components/ui/dialog/index.js";
     import { MoreHorizontal } from "@lucide/svelte";
+    import { decryptAES } from "$lib/util/crypt-utils/cryptography";
+    import { navigate } from "$lib/router";
     import { Input } from "../ui/input";
     import { Button } from "../ui/button";
-    import { toast } from "svelte-sonner";
-    import { mutateFolder } from "$lib/util/mutate-utils/mutate-folder";
-    import { useMutation } from "@sveltestack/svelte-query";
-    import { queryClient } from "$lib/util/query-utils/query-client.js";
-
-    const { folder } = $props();
+    
+    const { login, loginMutation, sharedLoginMutation } = $props();
     let dropdownOpen = $state(false);
-    const folderMutation = useMutation(
-        async ({
-            event,
-            method,
-            folderId,
-        }: {
-            event: Event;
-            method: "PATCH" | "DELETE";
-            folderId: number;
-        }) => {
-            event.preventDefault();
-            const formData = new FormData(event.target as HTMLFormElement);
-            await mutateFolder(formData, folderId.toString(), method);
-        },
-        {
-            onError: (error, variables) => {
-                toast.error(
-                    error instanceof Error ? error.message : "Unknown error",
-                    {
-                        description: "Error performing folder action",
-                        action: {
-                            label: "Try again",
-                            onClick: () => $folderMutation.mutate(variables),
-                        },
-                    }
-                );
-            },
-            onSettled: () => {
-                queryClient.invalidateQueries("folders");
-            },
-        }
-    );
 </script>
 
 <DropdownMenu.Root
     open={dropdownOpen}
-    onOpenChange={() => {
-        dropdownOpen = !dropdownOpen;
-    }}
+    onOpenChange={() => (dropdownOpen = !dropdownOpen)}
 >
     <DropdownMenu.Trigger>
         {#snippet child({ props })}
-            <Sidebar.MenuAction {...props}>
-                <MoreHorizontal />
-            </Sidebar.MenuAction>
+            <MoreHorizontal {...props} />
         {/snippet}
     </DropdownMenu.Trigger>
     <DropdownMenu.Content side="right" align="start">
+        <DropdownMenu.Item>
+            <button
+                onclick={() => navigator.clipboard.writeText(login.login_name)}
+            >
+                Copy username
+            </button>
+        </DropdownMenu.Item>
+        <DropdownMenu.Item>
+            <button
+                onclick={async () =>
+                    navigator.clipboard.writeText(
+                        await decryptAES(login.login_password, login.iv)
+                    )}
+            >
+                Copy password
+            </button>
+        </DropdownMenu.Item>
+        {#if login.file}
+            <DropdownMenu.Item>
+                <a
+                    href={"http://127.0.0.1:3000" + login.file}
+                    download
+                    target="_self"
+                >
+                    Download file
+                </a>
+            </DropdownMenu.Item>
+        {/if}
+        <DropdownMenu.Item>
+            {#snippet child({ props })}
+                <button
+                    onclick={() =>
+                        navigate("/logins/" + login.login_id + "/edit")}
+                    {...props}
+                >
+                    <span>Edit login</span>
+                </button>
+            {/snippet}
+        </DropdownMenu.Item>
         <Dialog.Root>
             <Dialog.Trigger>
                 {#snippet child({ props })}
@@ -69,31 +69,42 @@
                         }}
                         {...props}
                     >
-                        <span>Edit folder</span>
+                        <span>Share login</span>
                     </DropdownMenu.Item>
                 {/snippet}
             </Dialog.Trigger>
             <Dialog.Content>
                 <Dialog.Header>
-                    <Dialog.Title>Rename folder</Dialog.Title>
+                    <Dialog.Title>Share login with:</Dialog.Title>
                 </Dialog.Header>
                 <Dialog.Description class="hidden">
-                    Enter folder name
+                    Enter email address to share login.
                 </Dialog.Description>
                 <form
                     onsubmit={(event) => {
-                        $folderMutation.mutate({
-                            event,
-                            method: "PATCH",
-                            folderId: folder.id,
+                        event.preventDefault();
+                        sharedLoginMutation.mutate({
+                            loginId: login.login_id.toString(),
+                            formData: new FormData(event.currentTarget),
                         });
                     }}
                 >
                     <Input
-                        type="text"
-                        name="folder[name]"
-                        defaultValue={folder.name}
+                        type="hidden"
+                        name="shared_login_datum[name]"
+                        value={login.login_name}
                     />
+                    <Input
+                        type="hidden"
+                        name="shared_login_datum[login_name]"
+                        value={login.login_name}
+                    />
+                    <Input
+                        type="hidden"
+                        name="shared_login_datum[urls_attributes][0][uri]"
+                        value={login.urls[0]}
+                    />
+                    <Input type="text" name="shared_login_datum[email]" />
                     <br />
                     <Dialog.Footer>
                         <Dialog.Close>
@@ -103,7 +114,6 @@
                                     onclick={() => {
                                         dropdownOpen = false;
                                     }}
-                                    {...props}
                                 >
                                     Confirm
                                 </Button>
@@ -122,56 +132,47 @@
                         }}
                         {...props}
                     >
-                        <span>Delete folder</span>
+                        <span>Send to trash</span>
                     </DropdownMenu.Item>
                 {/snippet}
             </Dialog.Trigger>
             <Dialog.Content>
                 <Dialog.Header>
                     <Dialog.Title>
-                        Are you sure you want to remove the selected folder?
+                        Are you sure you want to send to trash?
                     </Dialog.Title>
                 </Dialog.Header>
                 <Dialog.Description class="hidden">
-                    Remove folder
+                    Send login to trash.
                 </Dialog.Description>
                 <Dialog.Footer>
                     <Dialog.Close>
                         {#snippet child({ props })}
                             <Button
-                                type="button"
-                                variant="secondary"
+                                variant="outline"
                                 onclick={() => {
                                     dropdownOpen = false;
                                 }}
                                 {...props}
                             >
-                                Cancel
+                                No
                             </Button>
                         {/snippet}
                     </Dialog.Close>
                     <Dialog.Close>
                         {#snippet child({ props })}
-                            <form
-                                onsubmit={(event) => {
-                                    $folderMutation.mutate({
-                                        event,
-                                        method: "DELETE",
-                                        folderId: folder.id,
-                                    });
+                            <Button
+                                type="button"
+                                onclick={() => {
+                                    loginMutation.mutate(
+                                        login.login_id.toString()
+                                    );
+                                    dropdownOpen = false;
                                 }}
                                 {...props}
                             >
-                                <Button
-                                    type="submit"
-                                    variant="destructive"
-                                    onclick={() => {
-                                        dropdownOpen = false;
-                                    }}
-                                >
-                                    Yes
-                                </Button>
-                            </form>
+                                Yes
+                            </Button>
                         {/snippet}
                     </Dialog.Close>
                 </Dialog.Footer>

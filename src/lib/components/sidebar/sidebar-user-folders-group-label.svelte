@@ -6,23 +6,31 @@
     import { Input } from "../ui/input";
     import { mutateFolder } from "$lib/util/mutate-utils/mutate-folder";
     import { toast } from "svelte-sonner";
+    import { useMutation } from "@sveltestack/svelte-query";
+    import { queryClient } from "$lib/util/query-utils/query-client";
 
-    const folderMutation = async (formData: FormData) => {
-        try {
+    const folderMutation = useMutation(
+        async (formData: FormData) => {
             await mutateFolder(formData, null, "POST");
-        } catch (error) {
-            toast.error(
-                error instanceof Error ? error.message : "Unknown error",
-                {
-                    description: "Error creating folder",
-                    action: {
-                        label: "Try again",
-                        onClick: () => folderMutation(formData),
-                    },
-                }
-            );
+        },
+        {
+            onError: (error, variables) => {
+                toast.error(
+                    error instanceof Error ? error.message : "Unknown error",
+                    {
+                        description: "Error creating folder",
+                        action: {
+                            label: "Try again",
+                            onClick: () => $folderMutation.mutate(variables),
+                        },
+                    }
+                );
+            },
+            onSettled: () => {
+                queryClient.invalidateQueries("folders");
+            },
         }
-    };
+    );
 </script>
 
 <Sidebar.GroupLabel>Folders</Sidebar.GroupLabel>
@@ -43,7 +51,7 @@
             onsubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target as HTMLFormElement);
-                folderMutation(formData);
+                $folderMutation.mutate(formData);
             }}
         >
             <Input type="text" name="folder[name]" />
