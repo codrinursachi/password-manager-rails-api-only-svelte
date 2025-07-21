@@ -8,8 +8,8 @@
     import { Button } from "../ui/button";
     import LoginFormInputs from "./login-form-inputs.svelte";
 
-    const params = $derived($route.split("/"));
-    const loginId = $derived(params.find((param) => !isNaN(+param)));
+    const params = $derived($route.split("/").slice(1));
+    const loginId = $derived(params.find((param) => !isNaN(+param.toString())));
     let isNew = $derived($route.includes("new"));
     let isEditable = $derived($route.includes("edit"));
     let dialogOpen = $state(false);
@@ -18,6 +18,7 @@
         valid = newValid;
     };
     $effect(() => {
+        $route;
         dialogOpen = !!loginId || isNew;
     });
     const loginMutation = useMutation(
@@ -80,7 +81,9 @@
         <form
             onsubmit={(e) => {
                 e.preventDefault();
+                console.log("Form submitted", e.target);
                 if (valid) {
+                    console.log("Submitting form data");
                     $loginMutation.mutate(
                         new FormData(e.target as HTMLFormElement)
                     );

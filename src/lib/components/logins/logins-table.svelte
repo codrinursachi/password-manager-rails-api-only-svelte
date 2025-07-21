@@ -20,8 +20,7 @@
         iv: string;
     };
 
-    let search = $derived(window.location.search);
-    let searchParams = $derived(new URLSearchParams(search));
+    let searchParams = $derived(new URLSearchParams($route.split("?")[1] || ""));
     let loginsQuery = $derived(
         useQuery<{ logins: Login[] }>(
             ["logins", searchParams.toString() || ""],
@@ -30,8 +29,12 @@
     );
     $effect(() => {
         $route;
-        console.log("Search params changed");
         untrack(() => {
+            loginsQuery.setOptions(
+                ["logins", searchParams.toString() || ""],
+                ({ signal }) =>
+                    queryLogins(searchParams.toString() || "", signal)
+            );
             $loginsQuery.refetch();
         });
     });
@@ -129,6 +132,7 @@
                         <button
                             onclick={() =>
                                 navigate("/logins/" + login.login_id + "/edit")}
+                            class="w-full text-left"
                         >
                             <div class="w-full">{login.name}</div>
                         </button>
