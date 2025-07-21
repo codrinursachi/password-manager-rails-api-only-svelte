@@ -56,6 +56,7 @@
                         type="email"
                         placeholder="m@example.com"
                         required
+                        name="email"
                         bind:value={email}
                     />
                 </div>

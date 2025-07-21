@@ -7,6 +7,7 @@
     import NotesPage from "./NotesPage.svelte";
     import SSHKeysPage from "./SSHKeysPage.svelte";
     import TrashPage from "./TrashPage.svelte";
+    import SharedLoginsPage from "./SharedLoginsPage.svelte";
 </script>
 
 <Sidebar.Provider>
@@ -14,6 +15,8 @@
     <main class="p-4">
         {#if $route.startsWith("/logins")}
             <LoginsPage />
+        {:else if $route.startsWith("/shared-logins")}
+            <SharedLoginsPage />
         {:else if $route.startsWith("/notes")}
             <NotesPage />
         {:else if $route.startsWith("/ssh-keys")}
