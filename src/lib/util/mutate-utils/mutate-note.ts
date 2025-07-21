@@ -6,7 +6,7 @@ export async function mutateNote(
     noteId: string | undefined,
     method: "POST" | "PATCH" | "DELETE"
 ) {
-    if (method !== "DELETE") {
+    if (method !== "DELETE" && !formData?.get("note[name_iv]")) {
         const [encryptedNoteName, encryptedNoteText] = await Promise.all([
             encryptAES(formData!.get("note[name]")?.toString()!),
             encryptAES(formData!.get("note[text]")?.toString()!),
@@ -16,10 +16,5 @@ export async function mutateNote(
         formData!.set("note[text]", encryptedNoteText.encryptedData);
         formData!.set("note[iv]", encryptedNoteText.iv);
     }
-    await networkFetch(
-        "notes/" + (noteId ?? ""),
-        undefined,
-        method,
-        formData
-    );
+    await networkFetch("notes/" + (noteId ?? ""), undefined, method, formData);
 }

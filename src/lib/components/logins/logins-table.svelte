@@ -20,47 +20,13 @@
         iv: string;
     };
 
-    let searchParams = $derived(new URLSearchParams($route.split("?")[1] || ""));
-    let loginsQuery = $derived(
-        useQuery<{ logins: Login[] }>(
-            ["logins", searchParams.toString() || ""],
-            ({ signal }) => queryLogins(searchParams.toString() || "", signal)
-        )
+    const searchParams = $derived(
+        new URLSearchParams($route.split("?")[1] || "")
     );
-    $effect(() => {
-        $route;
-        untrack(() => {
-            loginsQuery.setOptions(
-                ["logins", searchParams.toString() || ""],
-                ({ signal }) =>
-                    queryLogins(searchParams.toString() || "", signal)
-            );
-            $loginsQuery.refetch();
-        });
-    });
-    $effect(() => {
-        if ($loginsQuery.error) {
-            toast.error(
-                $loginsQuery.error instanceof Error
-                    ? $loginsQuery.error.message
-                    : "Unknown error",
-                {
-                    description: "Failed to load logins.",
-                    action: {
-                        label: "Retry",
-                        onClick: () =>
-                            queryClient.invalidateQueries({
-                                queryKey: [
-                                    "logins",
-                                    searchParams?.toString() ?? "",
-                                ],
-                            }),
-                    },
-                }
-            );
-        }
-    });
-
+    const loginsQuery = useQuery<{ logins: Login[] }>(
+        ["logins", () => searchParams.toString() || ""],
+        ({ signal }) => queryLogins(searchParams.toString() || "", signal)
+    );
     const loginMutation = useMutation(
         ["login", "trash"],
         async (loginId: string) => {
@@ -111,6 +77,39 @@
             },
         }
     );
+    $effect(() => {
+        $route;
+        untrack(() => {
+            loginsQuery.setOptions(
+                ["logins", searchParams.toString() || ""],
+                ({ signal }) =>
+                    queryLogins(searchParams.toString() || "", signal)
+            );
+            $loginsQuery.refetch();
+        });
+    });
+    $effect(() => {
+        if ($loginsQuery.error) {
+            toast.error(
+                $loginsQuery.error instanceof Error
+                    ? $loginsQuery.error.message
+                    : "Unknown error",
+                {
+                    description: "Failed to load logins.",
+                    action: {
+                        label: "Retry",
+                        onClick: () =>
+                            queryClient.invalidateQueries({
+                                queryKey: [
+                                    "logins",
+                                    searchParams?.toString() ?? "",
+                                ],
+                            }),
+                    },
+                }
+            );
+        }
+    });
 </script>
 
 <Table.Root class="table-fixed">

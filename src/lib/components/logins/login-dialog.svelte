@@ -39,22 +39,6 @@
             onSettled: () => {
                 queryClient.invalidateQueries({ queryKey: ["logins"] });
             },
-            // onMutate: (variables) => {
-            //     queryClient.cancelQueries(["logins", ""]);
-            //     queryClient.setQueryData(["logins", ""], (oldData: any) => {
-            //         if (!oldData) return oldData;
-            //         const logins = oldData.logins.map((login: any) => {
-            //             if (login.login_id === loginId) {
-            //                 return {
-            //                     ...login,
-            //                     ...Object.fromEntries(variables.entries()),
-            //                 };
-            //             }
-            //             return login;
-            //         });
-            //         return { ...oldData, logins };
-            //     });
-            // },
         }
     );
 </script>

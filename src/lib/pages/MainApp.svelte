@@ -4,6 +4,7 @@
     import AppSidebar from "./AppSidebar.svelte";
     import { route } from "$lib/router";
     import LoginsPage from "./LoginsPage.svelte";
+    import NotesPage from "./NotesPage.svelte";
 </script>
 
 <Sidebar.Provider>
@@ -11,6 +12,8 @@
     <main class="p-4">
         {#if $route.startsWith("/logins")}
             <LoginsPage />
+        {:else if $route.startsWith("/notes")}
+            <NotesPage />
         {/if}
     </main>
     <Toaster closeButton />
