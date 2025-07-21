@@ -5,6 +5,7 @@
     import { route } from "$lib/router";
     import LoginsPage from "./LoginsPage.svelte";
     import NotesPage from "./NotesPage.svelte";
+    import SSHKeysPage from "./SSHKeysPage.svelte";
 </script>
 
 <Sidebar.Provider>
@@ -14,6 +15,8 @@
             <LoginsPage />
         {:else if $route.startsWith("/notes")}
             <NotesPage />
+        {:else if $route.startsWith("/ssh-keys")}
+            <SSHKeysPage />
         {/if}
     </main>
     <Toaster closeButton />

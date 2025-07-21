@@ -6,7 +6,7 @@ export async function mutateSSHKey(
     keyId: string | undefined,
     method: "POST" | "PATCH" | "DELETE"
 ) {
-    if (method !== "DELETE") {
+    if (method !== "DELETE" && !formData!.get("sshkey[iv]")) {
         const privateKeyData = await encryptAES(
             formData!.get("sshkey[private_key]")?.toString()!
         );
