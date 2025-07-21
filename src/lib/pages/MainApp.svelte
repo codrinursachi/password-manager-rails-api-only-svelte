@@ -6,6 +6,7 @@
     import LoginsPage from "./LoginsPage.svelte";
     import NotesPage from "./NotesPage.svelte";
     import SSHKeysPage from "./SSHKeysPage.svelte";
+    import TrashPage from "./TrashPage.svelte";
 </script>
 
 <Sidebar.Provider>
@@ -17,6 +18,8 @@
             <NotesPage />
         {:else if $route.startsWith("/ssh-keys")}
             <SSHKeysPage />
+        {:else if $route.startsWith("/trash")}
+            <TrashPage />
         {/if}
     </main>
     <Toaster closeButton />

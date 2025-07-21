@@ -6,7 +6,7 @@
     import { navigate } from "$lib/router";
     import { Input } from "../ui/input";
     import { Button } from "../ui/button";
-    
+
     const { login, loginMutation, sharedLoginMutation } = $props();
     let dropdownOpen = $state(false);
 </script>
@@ -52,11 +52,11 @@
         <DropdownMenu.Item>
             {#snippet child({ props })}
                 <button
+                    {...props}
                     onclick={() =>
                         navigate("/logins/" + login.login_id + "/edit")}
-                    {...props}
                 >
-                    <span>Edit login</span>
+                    <span class="w-full">Edit login</span>
                 </button>
             {/snippet}
         </DropdownMenu.Item>
@@ -83,7 +83,7 @@
                 <form
                     onsubmit={(event) => {
                         event.preventDefault();
-                        sharedLoginMutation.mutate({
+                        $sharedLoginMutation.mutate({
                             loginId: login.login_id.toString(),
                             formData: new FormData(event.currentTarget),
                         });
@@ -162,14 +162,14 @@
                     <Dialog.Close>
                         {#snippet child({ props })}
                             <Button
+                                {...props}
                                 type="button"
                                 onclick={() => {
-                                    loginMutation.mutate(
+                                    $loginMutation.mutate(
                                         login.login_id.toString()
                                     );
                                     dropdownOpen = false;
                                 }}
-                                {...props}
                             >
                                 Yes
                             </Button>
