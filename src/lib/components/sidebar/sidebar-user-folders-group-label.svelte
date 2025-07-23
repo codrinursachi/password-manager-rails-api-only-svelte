@@ -6,31 +6,30 @@
     import { Input } from "../ui/input";
     import { mutateFolder } from "$lib/util/mutate-utils/mutate-folder";
     import { toast } from "svelte-sonner";
-    import { useMutation } from "@sveltestack/svelte-query";
     import { queryClient } from "$lib/util/query-utils/query-client";
+    import { createMutation } from "@tanstack/svelte-query";
 
-    const folderMutation = useMutation(
-        async (formData: FormData) => {
+    const folderMutation = createMutation({
+        mutationKey: ["folders", "add"],
+        mutationFn: async (formData: FormData) => {
             await mutateFolder(formData, null, "POST");
         },
-        {
-            onError: (error, variables) => {
-                toast.error(
-                    error instanceof Error ? error.message : "Unknown error",
-                    {
-                        description: "Error creating folder",
-                        action: {
-                            label: "Try again",
-                            onClick: () => $folderMutation.mutate(variables),
-                        },
-                    }
-                );
-            },
-            onSettled: () => {
-                queryClient.invalidateQueries("folders");
-            },
-        }
-    );
+        onError: (error, variables) => {
+            toast.error(
+                error instanceof Error ? error.message : "Unknown error",
+                {
+                    description: "Error creating folder",
+                    action: {
+                        label: "Try again",
+                        onClick: () => $folderMutation.mutate(variables),
+                    },
+                }
+            );
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["folders"] });
+        },
+    });
 </script>
 
 <Sidebar.GroupLabel>Folders</Sidebar.GroupLabel>

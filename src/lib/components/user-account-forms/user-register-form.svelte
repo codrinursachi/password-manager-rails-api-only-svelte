@@ -8,14 +8,14 @@
     import AlertCircleIcon from "@lucide/svelte/icons/alert-circle";
     import startRegistration from "../../util/passkey-util/passkey-registration";
     import { mutateUserRegistration } from "../../util/mutate-utils/mutate-user-registration";
-    import { useMutation } from "@sveltestack/svelte-query";
+    import { createMutation } from "@tanstack/svelte-query";
 
     let registerWithPassword = $state(false);
     let email = $state("");
     let name = $state("");
 
-    const initiateRegistration = useMutation(
-        async (event: Event | null) => {
+    const initiateRegistration = createMutation({
+        mutationFn: async (event: Event | null) => {
             if (!event) {
                 await startRegistration(email, name);
                 return;
@@ -25,15 +25,13 @@
                 new FormData(event.target as HTMLFormElement)
             );
         },
-        {
-            onError: () => {
-                registerWithPassword = false;
-            },
-            onSuccess: () => {
-                navigate("/");
-            },
-        }
-    );
+        onError: () => {
+            registerWithPassword = false;
+        },
+        onSuccess: () => {
+            navigate("/");
+        },
+    });
 </script>
 
 <Card.Root>

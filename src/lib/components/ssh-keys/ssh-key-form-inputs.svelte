@@ -2,7 +2,6 @@
     import { route } from "$lib/router";
     import { decryptAES } from "$lib/util/crypt-utils/cryptography";
     import { querySSHKey } from "$lib/util/query-utils/query-ssh-key";
-    import { useQuery } from "@sveltestack/svelte-query";
     import { generateKeyPair } from "web-ssh-keygen";
     import { Label } from "../ui/label";
     import { Skeleton } from "../ui/skeleton";
@@ -10,6 +9,7 @@
     import { Button } from "../ui/button";
     import { Textarea } from "../ui/textarea";
     import { untrack } from "svelte";
+    import { createQuery } from "@tanstack/svelte-query";
 
     const params = $route.split("/").slice(1);
     const id = params.find((param) => !isNaN(+param));
@@ -18,13 +18,11 @@
     let name = $state("");
     let notes = $state("");
     let privateKeyMasked = $state(true);
-    const individualSSHKeyQuery = useQuery(
-        ["individualSSHKey", id],
-        ({ signal }) => querySSHKey(id!, signal),
-        {
-            enabled: !!id,
-        }
-    );
+    const individualSSHKeyQuery = createQuery({
+        queryKey: ["individualSSHKey", id],
+        queryFn: ({ signal }) => querySSHKey(id!, signal),
+        enabled: !!id,
+    });
     let individualSSHKey = $state({
         name: "",
         private_key: "",

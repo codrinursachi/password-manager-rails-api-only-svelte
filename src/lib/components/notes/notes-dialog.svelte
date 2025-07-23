@@ -2,22 +2,41 @@
     import { route } from "$lib/router";
     import { mutateNote } from "$lib/util/mutate-utils/mutate-note";
     import { queryClient } from "$lib/util/query-utils/query-client";
-    import { useMutation } from "@sveltestack/svelte-query";
     import { toast } from "svelte-sonner";
     import * as Dialog from "$lib/components/ui/dialog/index.js";
     import { Button } from "../ui/button";
     import NotesFormInputs from "./notes-form-inputs.svelte";
+    import { createMutation } from "@tanstack/svelte-query";
 
     const params = $derived($route.split("/").slice(1));
     const noteId = $derived(params.find((param) => !isNaN(+param.toString())));
     const isNew = $derived($route.includes("new"));
     let dialogOpen = $state(false);
-    const noteMutation = useMutation(
-        ["note", () => (noteId ? "edit" : "add")],
-        async (formData: FormData) => {
+    let noteMutation = createMutation({
+        mutationKey: ["note", () => (noteId ? "edit" : "add")],
+        mutationFn: async (formData: FormData) => {
             await mutateNote(formData, noteId, noteId ? "PATCH" : "POST");
         },
-        {
+        onError: (error: Error, variables) => {
+            toast.error(error.message, {
+                description: "Error saving note",
+                action: {
+                    label: "Try again",
+                    onClick: () => $noteMutation.mutate(variables),
+                },
+            });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["notes"] });
+        },
+    });
+    $effect(() => {
+        dialogOpen = !!noteId || isNew;
+        noteMutation = createMutation({
+            mutationKey: ["note", noteId ? "edit" : "add"],
+            mutationFn: async (formData: FormData) => {
+                await mutateNote(formData, noteId, noteId ? "PATCH" : "POST");
+            },
             onError: (error: Error, variables) => {
                 toast.error(error.message, {
                     description: "Error saving note",
@@ -30,10 +49,7 @@
             onSettled: () => {
                 queryClient.invalidateQueries({ queryKey: ["notes"] });
             },
-        }
-    );
-    $effect(() => {
-        dialogOpen = !!noteId || isNew;
+        });
     });
 </script>
 
@@ -71,7 +87,7 @@
                 </Dialog.Close>
                 <Dialog.Close>
                     {#snippet child({ props })}
-                        <Button type="submit" {...props}>Save</Button>
+                        <Button {...props} type="submit">Save</Button>
                     {/snippet}
                 </Dialog.Close>
             </Dialog.Footer>

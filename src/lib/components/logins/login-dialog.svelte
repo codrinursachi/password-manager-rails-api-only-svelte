@@ -1,12 +1,12 @@
 <script lang="ts">
     import * as Dialog from "$lib/components/ui/dialog/index.js";
-    import { route } from "$lib/router";
+    import { navigate, previousPage, route } from "$lib/router";
     import { mutateLogin } from "$lib/util/mutate-utils/mutate-login";
     import { queryClient } from "$lib/util/query-utils/query-client";
-    import { useMutation } from "@sveltestack/svelte-query";
     import { toast } from "svelte-sonner";
     import { Button } from "../ui/button";
     import LoginFormInputs from "./login-form-inputs.svelte";
+    import { createMutation } from "@tanstack/svelte-query";
 
     const params = $derived($route.split("/").slice(1));
     const loginId = $derived(params.find((param) => !isNaN(+param.toString())));
@@ -17,16 +17,38 @@
     const handleValid = (newValid: boolean) => {
         valid = newValid;
     };
+    let loginMutation = createMutation({
+        // svelte-ignore state_referenced_locally
+        mutationKey: ["login", loginId ? "edit" : "add"],
+        mutationFn: async (formData: FormData) => {
+            await mutateLogin(formData, loginId, loginId ? "PATCH" : "POST");
+        },
+        onError: (error: Error, variables) => {
+            toast.error(error.message, {
+                description: "Failed to save login.",
+                action: {
+                    label: "Try again",
+                    onClick: () => $loginMutation.mutate(variables),
+                },
+            });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["logins"] });
+        },
+    });
+
     $effect(() => {
         $route;
         dialogOpen = !!loginId || isNew;
-    });
-    const loginMutation = useMutation(
-        ["login", () => (loginId ? "edit" : "add")],
-        async (formData: FormData) => {
-            await mutateLogin(formData, loginId, loginId ? "PATCH" : "POST");
-        },
-        {
+        loginMutation = createMutation({
+            mutationKey: ["login", loginId ? "edit" : "add"],
+            mutationFn: async (formData: FormData) => {
+                await mutateLogin(
+                    formData,
+                    loginId,
+                    loginId ? "PATCH" : "POST"
+                );
+            },
             onError: (error: Error, variables) => {
                 toast.error(error.message, {
                     description: "Failed to save login.",
@@ -39,8 +61,8 @@
             onSettled: () => {
                 queryClient.invalidateQueries({ queryKey: ["logins"] });
             },
-        }
-    );
+        });
+    });
 </script>
 
 <Dialog.Root
@@ -48,7 +70,7 @@
     onOpenChange={(isOpen) => {
         dialogOpen = isOpen;
         if (!isOpen) {
-            setTimeout(() => window.history.back(), 200);
+            setTimeout(() => navigate($previousPage), 200);
         }
     }}
 >
@@ -65,9 +87,7 @@
         <form
             onsubmit={(e) => {
                 e.preventDefault();
-                console.log("Form submitted", e.target);
                 if (valid) {
-                    console.log("Submitting form data");
                     $loginMutation.mutate(
                         new FormData(e.target as HTMLFormElement)
                     );

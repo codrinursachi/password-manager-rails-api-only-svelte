@@ -1,7 +1,6 @@
 <script lang="ts">
     import { route } from "$lib/router";
     import { queryLogin } from "$lib/util/query-utils/query-login";
-    import { useQuery } from "@sveltestack/svelte-query";
     import { Skeleton } from "../ui/skeleton";
     import { Input } from "../ui/input";
     import { Label } from "../ui/label";
@@ -12,6 +11,7 @@
     import { queryFolders } from "$lib/util/query-utils/query-folders";
     import PasswordGeneratorDialog from "./password-generator-dialog.svelte";
     import { untrack } from "svelte";
+    import { createQuery } from "@tanstack/svelte-query";
 
     type Folder = {
         id: number;
@@ -45,22 +45,19 @@
     function changePassword(password: string) {
         password = password;
     }
-    const loginQuery = useQuery(
-        ["individualLogin", id],
-        ({ signal }) => {
+    const loginQuery = createQuery({
+        queryKey: ["individualLogin", id],
+        queryFn: ({ signal }) => {
             return queryLogin(id!, signal);
         },
-        {
-            enabled: !!id,
-            refetchOnWindowFocus: false,
-        }
-    );
-    const folderQuery = useQuery(["folders"], ({ signal }) =>
-        queryFolders(signal),
-        {
-            refetchOnWindowFocus: false,
-        }
-    );
+        enabled: !!id,
+        refetchOnWindowFocus: false,
+    });
+    const folderQuery = createQuery({
+        queryKey: ["folders"],
+        queryFn: ({ signal }) => queryFolders(signal),
+        refetchOnWindowFocus: false,
+    });
     function handleChange() {
         if (password && name && username && url) {
             setValid(true);
@@ -70,7 +67,9 @@
     }
     let defaultFolderValue = $state("0");
     let defaultFolderName = $derived.by(() => {
-        const folder = $folderQuery.data.find((folder: Folder) => folder.id === +defaultFolderValue);
+        const folder = $folderQuery.data.find(
+            (folder: Folder) => folder.id === +defaultFolderValue
+        );
         return folder ? folder.name : "";
     });
     $effect(() => {
@@ -104,7 +103,7 @@
                 customFieldValue = individualLogin?.custom_fields[0]?.value;
                 customFieldId = individualLogin?.custom_fields[0]?.id;
                 checkboxValue = individualLogin?.is_favorite;
-                handleChange();
+                setValid(true);
             }
         });
     });

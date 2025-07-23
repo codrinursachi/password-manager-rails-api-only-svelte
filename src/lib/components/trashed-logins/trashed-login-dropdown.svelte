@@ -1,17 +1,17 @@
 <script lang="ts">
     import { mutateTrashedLogin } from "$lib/util/mutate-utils/mutate-trashed-login";
     import { queryClient } from "$lib/util/query-utils/query-client";
-    import { useMutation } from "@sveltestack/svelte-query";
     import { toast } from "svelte-sonner";
     import * as Dialog from "$lib/components/ui/dialog/index.js";
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
     import { Button, Root } from "../ui/button";
     import { MoreHorizontal } from "@lucide/svelte";
+    import { createMutation } from "@tanstack/svelte-query";
 
     const { login } = $props();
     let dropdownOpen = $state(false);
-    const trashedLoginMutation = useMutation(
-        async ({
+    const trashedLoginMutation = createMutation({
+        mutationFn: async ({
             loginId,
             method,
         }: {
@@ -20,22 +20,20 @@
         }) => {
             await mutateTrashedLogin(loginId.toString(), method);
         },
-        {
-            onError: (error: Error, variables) => {
-                console.error(error);
-                toast.error(error.message, {
-                    description: "Error performing trashed login action",
-                    action: {
-                        label: "Try again",
-                        onClick: () => $trashedLoginMutation.mutate(variables),
-                    },
-                });
-            },
-            onSettled: () => {
-                queryClient.invalidateQueries({ queryKey: ["trashedLogins"] });
-            },
-        }
-    );
+        onError: (error: Error, variables) => {
+            console.error(error);
+            toast.error(error.message, {
+                description: "Error performing trashed login action",
+                action: {
+                    label: "Try again",
+                    onClick: () => $trashedLoginMutation.mutate(variables),
+                },
+            });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["trashedLogins"] });
+        },
+    });
 </script>
 
 <DropdownMenu.Root

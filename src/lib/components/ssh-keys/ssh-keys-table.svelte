@@ -5,10 +5,14 @@
     import { mutateSSHKey } from "$lib/util/mutate-utils/mutate-ssh-key";
     import { queryClient } from "$lib/util/query-utils/query-client";
     import { querySSHKeys } from "$lib/util/query-utils/query-ssh-keys";
-    import { useMutation, useQuery } from "@sveltestack/svelte-query";
     import { toast } from "svelte-sonner";
     import { Button } from "../ui/button";
     import TableContentSkeleton from "../skeletons/table-content-skeleton.svelte";
+    import {
+        createMutation,
+        createQuery,
+        useMutationState,
+    } from "@tanstack/svelte-query";
 
     type SSHKey = {
         id: number;
@@ -19,10 +23,50 @@
         notes: string;
     };
 
-    const SSHKeysQuery = useQuery<{ sshKeys: SSHKey[] }>(
-        ["sshKeys"],
-        ({ signal }) => querySSHKeys(signal)
-    );
+    const SSHKeysQuery = createQuery<{ sshKeys: SSHKey[] }>({
+        queryKey: ["sshKeys"],
+        queryFn: ({ signal }) => querySSHKeys(signal),
+    });
+    const sshKeyMutation = createMutation({
+        mutationKey: ["sshKeys", "delete"],
+        mutationFn: async (keyId: number) => {
+            await mutateSSHKey(null, keyId.toString(), "DELETE");
+        },
+        onError: (error: Error, variables) => {
+            toast.error(error.message, {
+                description: "Error deleting SSH key",
+                action: {
+                    label: "Try again",
+                    onClick: () => $sshKeyMutation.mutate(variables),
+                },
+            });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({
+                queryKey: ["sshKeys"],
+            });
+        },
+    });
+    const pendingSSHKeysDelete = useMutationState({
+        filters: { mutationKey: ["sshKeys", "delete"], status: "pending" },
+        select: (mutation) => mutation.state.variables,
+    });
+    const pendingSSHKeysAdd = useMutationState({
+        filters: { mutationKey: ["sshKeys", "add"], status: "pending" },
+        select: (mutation) =>
+            (mutation.state.variables as { formData: FormData }).formData
+                .get("sshkey[name]")!
+                .toString(),
+    });
+    const pendingSSHKeysEdit = useMutationState({
+        filters: { mutationKey: ["sshKeys", "edit"], status: "pending" },
+        select: (mutation) => ({
+            id: (mutation.state.variables as { keyId: string }).keyId,
+            name: (mutation.state.variables as { formData: FormData }).formData
+                .get("sshkey[name]")!
+                .toString(),
+        }),
+    });
     $effect(() => {
         if ($SSHKeysQuery.error) {
             toast.error(
@@ -42,28 +86,6 @@
             );
         }
     });
-    const sshKeyMutation = useMutation(
-        ["sshKeys", "delete"],
-        async (keyId: number) => {
-            await mutateSSHKey(null, keyId.toString(), "DELETE");
-        },
-        {
-            onError: (error: Error, variables) => {
-                toast.error(error.message, {
-                    description: "Error deleting SSH key",
-                    action: {
-                        label: "Try again",
-                        onClick: () => $sshKeyMutation.mutate(variables),
-                    },
-                });
-            },
-            onSettled: () => {
-                queryClient.invalidateQueries({
-                    queryKey: ["sshKeys"],
-                });
-            },
-        }
-    );
 </script>
 
 <Table.Root class="table-fixed">
@@ -78,13 +100,26 @@
             <TableContentSkeleton cellNumber={2} />
         {:else}
             {#each $SSHKeysQuery.data.sshKeys as sshKey (sshKey.id)}
-                <Table.Row>
+                {@const pendingDelete = $pendingSSHKeysDelete.find(
+                    (key) => key === sshKey.id
+                )}
+                {@const pendingEdit = $pendingSSHKeysEdit.find(
+                    (key) => key.id === sshKey.id.toString()
+                )}
+                <Table.Row
+                    class={pendingEdit
+                        ? "text-green-500"
+                        : pendingDelete
+                          ? "text-red-500"
+                          : ""}
+                >
                     <Table.Cell>
                         <button
                             onclick={() => {
                                 navigate("/ssh-keys/" + sshKey.id + "/edit");
                             }}
-                            class="w-full text-left">{sshKey.name}</button
+                            class="w-full text-left"
+                            >{pendingEdit?.name ?? sshKey.name}</button
                         >
                     </Table.Cell>
                     <Table.Cell>
@@ -131,9 +166,9 @@
                                         <Dialog.Close>
                                             {#snippet child({ props })}
                                                 <Button
+                                                    {...props}
                                                     type="submit"
                                                     variant="destructive"
-                                                    {...props}
                                                 >
                                                     Delete
                                                 </Button>
@@ -144,6 +179,14 @@
                             </Dialog.Content>
                         </Dialog.Root>
                     </Table.Cell>
+                </Table.Row>
+            {/each}
+            {#each $pendingSSHKeysAdd as sshKey, index (index)}
+                <Table.Row class="text-gray-500">
+                    <Table.Cell>
+                        <div class="w-full">{sshKey}</div>
+                    </Table.Cell>
+                    <Table.Cell></Table.Cell>
                 </Table.Row>
             {/each}
         {/if}

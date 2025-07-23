@@ -8,13 +8,13 @@
     import AlertCircleIcon from "@lucide/svelte/icons/alert-circle";
     import { mutateUserLogin } from "../../util/mutate-utils/mutate-user-login";
     import startAuthentication from "../../util/passkey-util/passkey-authentication";
-    import { useMutation } from "@sveltestack/svelte-query";
+    import { createMutation } from "@tanstack/svelte-query";
 
     let loginWithPassword = $state(false);
     let email = $state("");
 
-    const initiateLogin = useMutation(
-        async (event: Event | null) => {
+    const initiateLogin = createMutation({
+        mutationFn: async (event: Event | null) => {
             if (!event) {
                 await startAuthentication(email);
                 return;
@@ -25,15 +25,13 @@
                 new FormData(event.target as HTMLFormElement)
             );
         },
-        {
-            onError: () => {
-                loginWithPassword = false;
-            },
-            onSuccess: () => {
-                navigate("/");
-            },
-        }
-    );
+        onError: () => {
+            loginWithPassword = false;
+        },
+        onSuccess: () => {
+            navigate("/");
+        },
+    });
 </script>
 
 <Card.Root class="mx-auto w-full max-w-sm">

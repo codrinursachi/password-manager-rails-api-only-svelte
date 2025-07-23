@@ -1,4 +1,3 @@
-"use client";
-import { QueryClient } from "@sveltestack/svelte-query";
+import { QueryClient } from "@tanstack/svelte-query";
 
 export const queryClient = new QueryClient();

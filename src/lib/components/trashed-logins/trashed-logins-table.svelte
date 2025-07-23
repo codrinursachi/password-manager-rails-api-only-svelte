@@ -1,12 +1,12 @@
 <script lang="ts">
     import TableContentSkeleton from "../skeletons/table-content-skeleton.svelte";
     import * as Table from "$lib/components/ui/table/index.js";
-    import { useQuery } from "@sveltestack/svelte-query";
     import { queryTrashedLogins } from "$lib/util/query-utils/query-trashed-logins";
     import { toast } from "svelte-sonner";
     import { queryClient } from "$lib/util/query-utils/query-client";
     import { navigate } from "$lib/router";
     import TrashedLoginDropdown from "./trashed-login-dropdown.svelte";
+    import { createQuery } from "@tanstack/svelte-query";
 
     type TrashedLogin = {
         login_id: number;
@@ -15,10 +15,10 @@
         trash_date: string;
     };
 
-    const trashedLoginsQuery = useQuery<{ trashedLogins: TrashedLogin[] }>(
-        ["trashedLogins"],
-        ({ signal }) => queryTrashedLogins(signal)
-    );
+    const trashedLoginsQuery = createQuery<{ trashedLogins: TrashedLogin[] }>({
+        queryKey: ["trashedLogins"],
+        queryFn: ({ signal }) => queryTrashedLogins(signal)
+    });
     $effect(() => {
         if ($trashedLoginsQuery.error) {
             toast.error(

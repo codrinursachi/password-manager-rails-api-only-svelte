@@ -7,13 +7,13 @@
     import { Button } from "../ui/button";
     import { toast } from "svelte-sonner";
     import { mutateFolder } from "$lib/util/mutate-utils/mutate-folder";
-    import { useMutation } from "@sveltestack/svelte-query";
     import { queryClient } from "$lib/util/query-utils/query-client.js";
+    import { createMutation } from "@tanstack/svelte-query";
 
     const { folder } = $props();
     let dropdownOpen = $state(false);
-    const folderMutation = useMutation(
-        async ({
+    const folderMutation = createMutation({
+        mutationFn: async ({
             event,
             method,
             folderId,
@@ -26,24 +26,22 @@
             const formData = new FormData(event.target as HTMLFormElement);
             await mutateFolder(formData, folderId.toString(), method);
         },
-        {
-            onError: (error, variables) => {
-                toast.error(
-                    error instanceof Error ? error.message : "Unknown error",
-                    {
-                        description: "Error performing folder action",
-                        action: {
-                            label: "Try again",
-                            onClick: () => $folderMutation.mutate(variables),
-                        },
-                    }
-                );
-            },
-            onSettled: () => {
-                queryClient.invalidateQueries("folders");
-            },
-        }
-    );
+        onError: (error, variables) => {
+            toast.error(
+                error instanceof Error ? error.message : "Unknown error",
+                {
+                    description: "Error performing folder action",
+                    action: {
+                        label: "Try again",
+                        onClick: () => $folderMutation.mutate(variables),
+                    },
+                }
+            );
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["folders"] });
+        },
+    });
 </script>
 
 <DropdownMenu.Root

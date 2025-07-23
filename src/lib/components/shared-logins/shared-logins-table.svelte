@@ -2,20 +2,46 @@
     import TableContentSkeleton from "../skeletons/table-content-skeleton.svelte";
     import * as Table from "$lib/components/ui/table/index.js";
     import { navigate, route } from "$lib/router";
-    import { useQuery } from "@sveltestack/svelte-query";
     import { querySharedLogins } from "$lib/util/query-utils/query-shared-logins";
     import { toast } from "svelte-sonner";
     import { queryClient } from "$lib/util/query-utils/query-client";
     import SharedLoginDropdown from "./shared-login-dropdown.svelte";
+    import { createQuery, useMutationState } from "@tanstack/svelte-query";
 
     const queryParameter = $derived(
         $route.includes("by-me") ? "by_me=true" : ""
     );
-    const sharedLoginsQuery = useQuery(
+    const sharedLoginsQuery = createQuery({
         // svelte-ignore state_referenced_locally
-        ["sharedLogins", queryParameter],
-        ({ signal }) => querySharedLogins(queryParameter, signal)
-    );
+        queryKey: ["sharedLogins", queryParameter],
+        queryFn: ({ signal }) => querySharedLogins(queryParameter, signal),
+    });
+
+    const pendingSharedLoginsAdd = useMutationState({
+        filters: { mutationKey: ["sharedLogins", "add"], status: "pending" },
+        select: (mutation) => {
+            const formdata = (
+                mutation.state.variables as { formData: FormData }
+            ).formData;
+            return {
+                name: formdata.get("shared_login_datum[name]")!.toString(),
+                login_name: formdata
+                    .get("shared_login_datum[login_name]")!
+                    .toString(),
+                url: formdata
+                    .get("shared_login_datum[urls_attributes][0][uri]")!
+                    .toString(),
+                shared_with: formdata
+                    .get("shared_login_datum[email]")
+                    ?.toString(),
+            };
+        },
+    });
+    const pendingSharedLoginsDelete = useMutationState({
+        filters: { mutationKey: ["sharedLogins", "delete"], status: "pending" },
+        select: (mutation) => mutation.state.variables,
+    });
+
     $effect(() => {
         if ($sharedLoginsQuery.error) {
             toast.error(
@@ -56,7 +82,10 @@
             <TableContentSkeleton cellNumber={5} />
         {:else}
             {#each $sharedLoginsQuery.data?.sharedLogins as login, index (index)}
-                <Table.Row>
+                {@const pendingDelete = $pendingSharedLoginsDelete.find(
+                    (loginId) => loginId === login.id.toString()
+                )}
+                <Table.Row class={pendingDelete ? "text-red-500" : ""}>
                     <Table.Cell>
                         <button
                             onclick={() => {
@@ -98,6 +127,19 @@
                     <Table.Cell>
                         <SharedLoginDropdown {login} />
                     </Table.Cell>
+                </Table.Row>
+            {/each}
+            {#each $pendingSharedLoginsAdd as login, index (index)}
+                <Table.Row class="text-gray-500">
+                    <Table.Cell>
+                        <div class="w-full">{login.name}</div>
+                    </Table.Cell>
+                    <Table.Cell>{login.login_name}</Table.Cell>
+                    <Table.Cell>
+                        <div class="w-full">{login.url}</div>
+                    </Table.Cell>
+                    <Table.Cell>{login.shared_with}</Table.Cell>
+                    <Table.Cell></Table.Cell>
                 </Table.Row>
             {/each}
         {/if}

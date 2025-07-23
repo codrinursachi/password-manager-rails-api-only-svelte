@@ -2,23 +2,30 @@
     import { route } from "$lib/router";
     import { mutateSSHKey } from "$lib/util/mutate-utils/mutate-ssh-key";
     import { queryClient } from "$lib/util/query-utils/query-client";
-    import { useMutation } from "@sveltestack/svelte-query";
     import { toast } from "svelte-sonner";
     import * as Dialog from "$lib/components/ui/dialog/index.js";
     import { Button } from "../ui/button";
     import SSHKeyFormInputs from "./ssh-key-form-inputs.svelte";
+    import { createMutation } from "@tanstack/svelte-query";
 
     const params = $derived($route.split("/").slice(1));
     const keyId = $derived(params.find((param) => !isNaN(+param)));
     const isNew = $derived($route.includes("new"));
     let dialogOpen = $state(false);
-    const sshKeyMutation = useMutation(
-        ["sshKeys", "add"],
-        async (formData: FormData) => {
-            const method = keyId ? "PATCH" : "POST";
-            await mutateSSHKey(formData, keyId, method);
-        },
-        {
+    let sshKeyMutation = $state(
+        createMutation({
+            // svelte-ignore state_referenced_locally
+            mutationKey: ["sshKeys", keyId ? "add" : "edit"],
+            mutationFn: async ({
+                formData,
+                keyId,
+            }: {
+                formData: FormData;
+                keyId: string | undefined;
+            }) => {
+                const method = keyId ? "PATCH" : "POST";
+                await mutateSSHKey(formData, keyId, method);
+            },
             onError: (error: Error, variables) => {
                 console.error(error);
                 toast.error(error.message, {
@@ -32,10 +39,35 @@
             onSettled: () => {
                 queryClient.invalidateQueries({ queryKey: ["sshKeys"] });
             },
-        }
+        })
     );
     $effect(() => {
         dialogOpen = !!keyId || isNew;
+        sshKeyMutation = createMutation({
+            mutationKey: ["sshKeys", keyId ? "edit" : "add"],
+            mutationFn: async ({
+                formData,
+                keyId,
+            }: {
+                formData: FormData;
+                keyId: string | undefined;
+            }) => {
+                const method = keyId ? "PATCH" : "POST";
+                await mutateSSHKey(formData, keyId, method);
+            },
+            onError: (error: Error, variables) => {
+                toast.error(error.message, {
+                    description: "Error saving SSH key",
+                    action: {
+                        label: "Try again",
+                        onClick: () => $sshKeyMutation.mutate(variables),
+                    },
+                });
+            },
+            onSettled: () => {
+                queryClient.invalidateQueries({ queryKey: ["sshKeys"] });
+            },
+        });
     });
 </script>
 
@@ -60,9 +92,10 @@
         <form
             onsubmit={(e) => {
                 e.preventDefault();
-                $sshKeyMutation.mutate(
-                    new FormData(e.target as HTMLFormElement)
-                );
+                $sshKeyMutation.mutate({
+                    formData: new FormData(e.target as HTMLFormElement),
+                    keyId: keyId,
+                });
             }}
             encType="multipart/form-data"
         >

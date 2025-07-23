@@ -5,8 +5,8 @@
     import UserRegisterPage from "./lib/pages/UserRegisterPage.svelte";
     import RouteGuard from "./lib/route-guard.svelte";
     import MainApp from "./lib/pages/MainApp.svelte";
-    import { QueryClientProvider } from "@sveltestack/svelte-query";
     import { queryClient } from "./lib/util/query-utils/query-client.js";
+    import { QueryClientProvider } from "@tanstack/svelte-query";
 </script>
 
 <QueryClientProvider client={queryClient}>

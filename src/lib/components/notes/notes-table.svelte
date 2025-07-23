@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { useMutation, useQuery } from "@sveltestack/svelte-query";
     import TableContentSkeleton from "../skeletons/table-content-skeleton.svelte";
     import * as Table from "$lib/components/ui/table/index.js";
     import * as Dialog from "$lib/components/ui/dialog/index.js";
@@ -10,6 +9,11 @@
     import { mutateNote } from "$lib/util/mutate-utils/mutate-note";
     import { navigate } from "$lib/router";
     import { Button } from "../ui/button";
+    import {
+        createMutation,
+        createQuery,
+        useMutationState,
+    } from "@tanstack/svelte-query";
 
     type Note = {
         id: number;
@@ -20,30 +24,53 @@
     };
 
     let notes = $state<Note[]>([]);
-    const notesQuery = useQuery<{ notes: Note[] }>(["notes"], ({ signal }) =>
-        queryNotes(signal)
-    );
-    const noteMutation = useMutation(
-        ["note", "delete"],
-        async (noteId: string) => {
+    const notesQuery = createQuery<{ notes: Note[] }>({
+        queryKey: ["notes"],
+        queryFn: ({ signal }) => queryNotes(signal),
+    });
+    const noteMutation = createMutation({
+        mutationKey: ["note", "delete"],
+        mutationFn: async (noteId: string) => {
             await mutateNote(null, noteId, "DELETE");
         },
-        {
-            onError: (error: Error, variables) => {
-                console.error(error);
-                toast.error(error.message, {
-                    description: "Error deleting note",
-                    action: {
-                        label: "Try again",
-                        onClick: () => $noteMutation.mutate(variables),
-                    },
-                });
-            },
-            onSettled: () => {
-                queryClient.invalidateQueries({ queryKey: ["notes"] });
-            },
-        }
-    );
+        onError: (error: Error, variables) => {
+            console.error(error);
+            toast.error(error.message, {
+                description: "Error deleting note",
+                action: {
+                    label: "Try again",
+                    onClick: () => $noteMutation.mutate(variables),
+                },
+            });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["notes"] });
+        },
+    });
+
+    const pendingNotesAdd = useMutationState({
+        filters: { mutationKey: ["note", "add"], status: "pending" },
+        select: (mutation) =>
+            (mutation.state.variables as FormData)
+                .get("note[name]")
+                ?.toString(),
+    });
+    const pendingNotesEdit = useMutationState({
+        filters: { mutationKey: ["note", "edit"], status: "pending" },
+        select: (mutation) => ({
+            id: (mutation.state.variables as FormData)
+                .get("note[note_id]")
+                ?.toString(),
+            name: (mutation.state.variables as FormData)
+                .get("note[name]")
+                ?.toString(),
+        }),
+    });
+    const pendingNotesDelete = useMutationState({
+        filters: { mutationKey: ["note", "delete"], status: "pending" },
+        select: (mutation) => mutation.state.variables,
+    });
+
     $effect(() => {
         if ($notesQuery.error) {
             toast.error(
@@ -72,7 +99,7 @@
                 }))
             );
         }
-        
+
         if ($notesQuery.isSuccess) decryptNotesNames();
     });
 </script>
@@ -85,17 +112,30 @@
         </Table.Row>
     </Table.Header>
     <Table.Body>
-        {#if $notesQuery.isFetching}
+        {#if !$notesQuery.isSuccess}
             <TableContentSkeleton cellNumber={2} />
         {:else}
             {#each notes as note (note.id)}
-                <Table.Row>
+                {@const pendingEdit = $pendingNotesEdit.find(
+                    (pendingNote) => pendingNote.id === note.id.toString()
+                )}
+                {@const pendingDelete = $pendingNotesDelete.find(
+                    (pendingNote) => pendingNote === note.id.toString()
+                )}
+                <Table.Row
+                    class={pendingEdit
+                        ? "text-green-500"
+                        : pendingDelete
+                          ? "text-red-500"
+                          : ""}
+                >
                     <Table.Cell>
                         <button
                             onclick={() => {
                                 navigate("/notes/" + note.id + "/edit");
                             }}
-                            class="w-full text-left">{note.name}</button
+                            class="w-full text-left"
+                            >{pendingEdit?.name ?? note.name}</button
                         >
                     </Table.Cell>
                     <Table.Cell>
@@ -151,6 +191,12 @@
                             </Dialog.Content>
                         </Dialog.Root>
                     </Table.Cell>
+                </Table.Row>
+            {/each}
+            {#each $pendingNotesAdd as note, index (index)}
+                <Table.Row class="text-gray-500">
+                    <Table.Cell>{note}</Table.Cell>
+                    <Table.Cell></Table.Cell>
                 </Table.Row>
             {/each}
         {/if}

@@ -2,22 +2,20 @@
     import { route } from "$lib/router";
     import { decryptAES } from "$lib/util/crypt-utils/cryptography";
     import { queryNote } from "$lib/util/query-utils/query-note";
-    import { useQuery } from "@sveltestack/svelte-query";
     import { untrack } from "svelte";
     import { Input } from "../ui/input";
     import { Label } from "../ui/label";
     import { Skeleton } from "../ui/skeleton";
     import { Textarea } from "../ui/textarea";
+    import { createQuery } from "@tanstack/svelte-query";
 
     const params = $route.split("/").slice(1);
     const id = params.find((param) => !isNaN(+param));
-    const individualNoteQuery = useQuery(
-        ["individualNote", id],
-        ({ signal }) => queryNote(id!, signal),
-        {
-            enabled: !!id,
-        }
-    );
+    const individualNoteQuery = createQuery({
+        queryKey: ["individualNote", id],
+        queryFn: ({ signal }) => queryNote(id!, signal),
+        enabled: !!id,
+    });
     let noteName = $state("");
     let noteText = $state("");
     let individualNote = $state({

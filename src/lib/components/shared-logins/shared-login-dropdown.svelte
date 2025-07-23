@@ -9,14 +9,14 @@
     import { queryClient } from "$lib/util/query-utils/query-client";
     import { queryLogin } from "$lib/util/query-utils/query-login";
     import { MoreHorizontal } from "@lucide/svelte";
-    import { useMutation } from "@sveltestack/svelte-query";
+    import { createMutation } from "@tanstack/svelte-query";
     import { toast } from "svelte-sonner";
 
     const getPasswordSharedByMe = async (id: string) => {
-        const { individualLogin } = await queryClient.fetchQuery(
-            ["individualLogin", id],
-            ({ signal }) => queryLogin(id, signal)
-        );
+        const { individualLogin } = await queryClient.fetchQuery({
+            queryKey: ["individualLogin", id],
+            queryFn: ({ signal }) => queryLogin(id, signal),
+        });
         return decryptAES(individualLogin.login_password, individualLogin.iv);
     };
 
@@ -27,28 +27,26 @@
     const { login } = $props();
     const byMe = $derived($route.includes("by-me"));
     let dropdownOpen = $state(false);
-    const sharedLoginMutation = useMutation(
-        ["sharedLogins", "delete"],
-        async (loginId: string) => {
+    const sharedLoginMutation = createMutation({
+        mutationKey: ["sharedLogins", "delete"],
+        mutationFn: async (loginId: string) => {
             await mutateSharedLogin(null, loginId);
         },
-        {
-            onError: (error: Error, variables) => {
-                toast.error(error.message, {
-                    description: "Error deleting shared login",
-                    action: {
-                        label: "Try again",
-                        onClick: () => $sharedLoginMutation.mutate(variables),
-                    },
-                });
-            },
-            onSettled: () => {
-                queryClient.invalidateQueries({
-                    queryKey: ["sharedLogins", byMe ? "by_me=true" : ""],
-                });
-            },
-        }
-    );
+        onError: (error: Error, variables) => {
+            toast.error(error.message, {
+                description: "Error deleting shared login",
+                action: {
+                    label: "Try again",
+                    onClick: () => $sharedLoginMutation.mutate(variables),
+                },
+            });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({
+                queryKey: ["sharedLogins", byMe ? "by_me=true" : ""],
+            });
+        },
+    });
 </script>
 
 <DropdownMenu.Root
