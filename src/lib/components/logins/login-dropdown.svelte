@@ -53,8 +53,10 @@
             {#snippet child({ props })}
                 <button
                     {...props}
-                    onclick={() =>
-                        navigate("/logins/" + login.login_id + "/edit")}
+                    onclick={() => {
+                        navigate("/logins/" + login.login_id + "/edit");
+                        dropdownOpen = false;
+                    }}
                 >
                     <span class="w-full">Edit login</span>
                 </button>
@@ -110,6 +112,7 @@
                         <Dialog.Close>
                             {#snippet child({ props })}
                                 <Button
+                                {...props}
                                     type="submit"
                                     onclick={() => {
                                         dropdownOpen = false;

@@ -52,10 +52,14 @@
         },
         {
             enabled: !!id,
+            refetchOnWindowFocus: false,
         }
     );
     const folderQuery = useQuery(["folders"], ({ signal }) =>
-        queryFolders(signal)
+        queryFolders(signal),
+        {
+            refetchOnWindowFocus: false,
+        }
     );
     function handleChange() {
         if (password && name && username && url) {
