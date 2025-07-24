@@ -14,8 +14,18 @@
     let dialogOpen = $state(false);
     let noteMutation = createMutation({
         mutationKey: ["note", () => (noteId ? "edit" : "add")],
-        mutationFn: async (formData: FormData) => {
-            await mutateNote(formData, noteId, noteId ? "PATCH" : "POST");
+        mutationFn: async ({
+            formData,
+            noteId,
+        }: {
+            formData: FormData;
+            noteId: string | undefined;
+        }) => {
+            const formDataClone = new FormData();
+            formData.forEach((value, key) => {
+                formDataClone.append(key, value);
+            });
+            await mutateNote(formDataClone, noteId, noteId ? "PATCH" : "POST");
         },
         onError: (error: Error, variables) => {
             toast.error(error.message, {
@@ -34,8 +44,22 @@
         dialogOpen = !!noteId || isNew;
         noteMutation = createMutation({
             mutationKey: ["note", noteId ? "edit" : "add"],
-            mutationFn: async (formData: FormData) => {
-                await mutateNote(formData, noteId, noteId ? "PATCH" : "POST");
+            mutationFn: async ({
+                formData,
+                noteId,
+            }: {
+                formData: FormData;
+                noteId: string | undefined;
+            }) => {
+                const formDataClone = new FormData();
+                formData.forEach((value, key) => {
+                    formDataClone.append(key, value);
+                });
+                await mutateNote(
+                    formDataClone,
+                    noteId,
+                    noteId ? "PATCH" : "POST"
+                );
             },
             onError: (error: Error, variables) => {
                 toast.error(error.message, {
@@ -73,7 +97,7 @@
             onsubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target as HTMLFormElement);
-                $noteMutation.mutate(formData);
+                $noteMutation.mutate({ formData, noteId });
             }}
         >
             <NotesFormInputs />

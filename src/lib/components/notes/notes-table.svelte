@@ -51,17 +51,21 @@
     const pendingNotesAdd = useMutationState({
         filters: { mutationKey: ["note", "add"], status: "pending" },
         select: (mutation) =>
-            (mutation.state.variables as FormData)
+            (
+                (mutation.state.variables as { formData: FormData })
+                    .formData as FormData
+            )
                 .get("note[name]")
                 ?.toString(),
     });
     const pendingNotesEdit = useMutationState({
         filters: { mutationKey: ["note", "edit"], status: "pending" },
         select: (mutation) => ({
-            id: (mutation.state.variables as FormData)
-                .get("note[note_id]")
-                ?.toString(),
-            name: (mutation.state.variables as FormData)
+            id: (mutation.state.variables as { noteId: string }).noteId,
+            name: (
+                (mutation.state.variables as { formData: FormData })
+                    .formData as FormData
+            )
                 .get("note[name]")
                 ?.toString(),
         }),
@@ -164,9 +168,9 @@
                                     <Dialog.Close>
                                         {#snippet child({ props })}
                                             <Button
+                                                {...props}
                                                 variant="outline"
                                                 type="button"
-                                                {...props}
                                             >
                                                 Cancel
                                             </Button>
@@ -175,9 +179,9 @@
                                     <Dialog.Close>
                                         {#snippet child({ props })}
                                             <Button
+                                                {...props}
                                                 type="button"
                                                 variant="destructive"
-                                                {...props}
                                                 onclick={() =>
                                                     $noteMutation.mutate(
                                                         note.id.toString()
