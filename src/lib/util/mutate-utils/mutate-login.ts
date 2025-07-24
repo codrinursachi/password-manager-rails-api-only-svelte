@@ -6,7 +6,7 @@ export async function mutateLogin(
     loginId: string | undefined,
     method: "POST" | "PATCH" | "DELETE"
 ) {
-    if (method !== "DELETE") {
+    if (method !== "DELETE" && !formData!.get("login[iv]")) {
         const passwordData = await encryptAES(
             formData!.get("login[login_password]")?.toString()!
         );
